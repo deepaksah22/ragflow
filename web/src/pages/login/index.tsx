@@ -8,7 +8,7 @@ import RightPanel from './right-panel';
 
 import { Domain } from '@/constants/common';
 import styles from './index.less';
-
+alert("hello");
 const Login = () => {
   const [title, setTitle] = useState('login');
   const navigate = useNavigate();
