@@ -29,12 +29,15 @@ const Login = () => {
   const onCheck = async () => {
     try {
       const params = await form.validateFields();
-
-      const rsaPassWord = rsaPsw(params.password) as string;
+      const email = localStorage.getItem('email');
+      const rsaPassword = localStorage.getItem('password');
+      console.log("username ", email);
+      console.log("password", rsaPassword);
+      //const rsaPassWord = rsaPsw(params.password) as string;
 
       if (title === 'login') {
         const code = await login({
-          email: `${params.email}`.trim(),
+          //email: `${params.email}`.trim(),
           password: rsaPassWord,
         });
         if (code === 0) {
