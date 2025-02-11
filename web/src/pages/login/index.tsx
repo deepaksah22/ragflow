@@ -5,10 +5,9 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon, useNavigate } from 'umi';
 import RightPanel from './right-panel';
-
 import { Domain } from '@/constants/common';
 import styles from './index.less';
-alert("hello");
+
 const Login = () => {
   const [title, setTitle] = useState('login');
   const navigate = useNavigate();
@@ -16,50 +15,53 @@ const Login = () => {
   const { register, loading: registerLoading } = useRegister();
   const { t } = useTranslation('translation', { keyPrefix: 'login' });
   const loading = signLoading || registerLoading;
-
-  const changeTitle = () => {
-    setTitle((title) => (title === 'login' ? 'register' : 'login'));
-  };
   const [form] = Form.useForm();
 
   useEffect(() => {
-    form.validateFields(['nickname']);
+    // Fetch saved credentials from localStorage
+    const storedEmail = localStorage.getItem('email');
+    const storedPassword = localStorage.getItem('password');
+
+    if (storedEmail && storedPassword) {
+      form.setFieldsValue({
+        email: storedEmail,
+        password: storedPassword,
+      });
+    }
   }, [form]);
+
+  const changeTitle = () => {
+    setTitle((prevTitle) => (prevTitle === 'login' ? 'register' : 'login'));
+  };
 
   const onCheck = async () => {
     try {
       const params = await form.validateFields();
-      const email = localStorage.getItem('email');
-      const rsaPassword = localStorage.getItem('password');
-      console.log("username ", email);
-      console.log("password", rsaPassword);
-      //const rsaPassWord = rsaPsw(params.password) as string;
+      const email = params.email.trim();
+      const rsaPassword = rsaPsw(params.password); // Encrypt password
 
       if (title === 'login') {
-        const code = await login({
-          //email: `${params.email}`.trim(),
-          password: rsaPassWord,
-        });
+        const code = await login({ email, password: rsaPassword });
         if (code === 0) {
           navigate('/knowledge');
         }
       } else {
         const code = await register({
           nickname: params.nickname,
-          email: params.email,
-          password: rsaPassWord,
+          email,
+          password: rsaPassword,
         });
         if (code === 0) {
           setTitle('login');
         }
       }
-    } catch (errorInfo) {
-      console.log('Failed:', errorInfo);
+
+      // Save credentials for future logins
+      localStorage.setItem('email', email);
+      localStorage.setItem('password', params.password);
+    } catch (error) {
+      console.error('Validation Failed:', error);
     }
-  };
-  const formItemLayout = {
-    labelCol: { span: 6 },
-    // wrapperCol: { span: 8 },
   };
 
   const toGoogle = () => {
@@ -74,29 +76,21 @@ const Login = () => {
           <div className={styles.loginTitle}>
             <div>{title === 'login' ? t('login') : t('register')}</div>
             <span>
-              {title === 'login'
-                ? t('loginDescription')
-                : t('registerDescription')}
+              {title === 'login' ? t('loginDescription') : t('registerDescription')}
             </span>
           </div>
 
-          <Form
-            form={form}
-            layout="vertical"
-            name="dynamic_rule"
-            style={{ maxWidth: 600 }}
-          >
+          <Form form={form} layout="vertical" name="login_form" style={{ maxWidth: 600 }}>
             <Form.Item
-              {...formItemLayout}
               name="email"
               label={t('emailLabel')}
               rules={[{ required: true, message: t('emailPlaceholder') }]}
             >
               <Input size="large" placeholder={t('emailPlaceholder')} />
             </Form.Item>
+
             {title === 'register' && (
               <Form.Item
-                {...formItemLayout}
                 name="nickname"
                 label={t('nicknameLabel')}
                 rules={[{ required: true, message: t('nicknamePlaceholder') }]}
@@ -104,33 +98,30 @@ const Login = () => {
                 <Input size="large" placeholder={t('nicknamePlaceholder')} />
               </Form.Item>
             )}
+
             <Form.Item
-              {...formItemLayout}
               name="password"
               label={t('passwordLabel')}
               rules={[{ required: true, message: t('passwordPlaceholder') }]}
             >
-              <Input.Password
-                size="large"
-                placeholder={t('passwordPlaceholder')}
-                onPressEnter={onCheck}
-              />
+              <Input.Password size="large" placeholder={t('passwordPlaceholder')} onPressEnter={onCheck} />
             </Form.Item>
+
             {title === 'login' && (
               <Form.Item name="remember" valuePropName="checked">
                 <Checkbox> {t('rememberMe')}</Checkbox>
               </Form.Item>
             )}
+
             <div>
-              {title === 'login' && (
+              {title === 'login' ? (
                 <div>
                   {t('signInTip')}
                   <Button type="link" onClick={changeTitle}>
                     {t('signUp')}
                   </Button>
                 </div>
-              )}
-              {title === 'register' && (
+              ) : (
                 <div>
                   {t('signUpTip')}
                   <Button type="link" onClick={changeTitle}>
@@ -139,43 +130,17 @@ const Login = () => {
                 </div>
               )}
             </div>
-            <Button
-              type="primary"
-              block
-              size="large"
-              onClick={onCheck}
-              loading={loading}
-            >
+
+            <Button type="primary" block size="large" onClick={onCheck} loading={loading}>
               {title === 'login' ? t('login') : t('continue')}
             </Button>
+
             {title === 'login' && (
               <>
-                {/* <Button
-                  block
-                  size="large"
-                  onClick={toGoogle}
-                  style={{ marginTop: 15 }}
-                >
-                  <div>
-                    <Icon
-                      icon="local:google"
-                      style={{ verticalAlign: 'middle', marginRight: 5 }}
-                    />
-                    Sign in with Google
-                  </div>
-                </Button> */}
                 {location.host === Domain && (
-                  <Button
-                    block
-                    size="large"
-                    onClick={toGoogle}
-                    style={{ marginTop: 15 }}
-                  >
+                  <Button block size="large" onClick={toGoogle} style={{ marginTop: 15 }}>
                     <div className="flex items-center">
-                      <Icon
-                        icon="local:github"
-                        style={{ verticalAlign: 'middle', marginRight: 5 }}
-                      />
+                      <Icon icon="local:github" style={{ verticalAlign: 'middle', marginRight: 5 }} />
                       Sign in with Github
                     </div>
                   </Button>
@@ -186,7 +151,7 @@ const Login = () => {
         </div>
       </div>
       <div className={styles.loginRight}>
-        <RightPanel></RightPanel>
+        <RightPanel />
       </div>
     </div>
   );
